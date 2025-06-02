@@ -419,7 +419,7 @@ def calcular_estadisticas(csv_filename):
     print("\nEstadísticas globales:")
     print(global_stats)
 
-    # Mostrar evolución del dinero promedio a lo largo de los ciclos
+    # Mostrar evolución del dinero, clientes, ventas y participacion del mercado promedio a lo largo de los ciclos
     df_grouped = df.groupby("ciclo")[["dinero", "clientes", "ventas", "participacion_mercado"]].mean()
 
     #df_grouped = df.groupby("ciclo")["dinero"].mean()
@@ -432,18 +432,37 @@ def calcular_estadisticas(csv_filename):
 df, df_final = calcular_estadisticas(csv_filename)
 
 if df is not None and df_final is not None:
+    
     def grafico_evolucion(df):
+        # Agrupar por ciclo y calcular el promedio de las variables clave
         df_grouped = df.groupby("ciclo")[["dinero", "clientes", "ventas", "participacion_mercado"]].mean()
 
-        plt.figure(figsize=(10, 6))
-        for columna in df_grouped.columns:
-            plt.plot(df_grouped.index, df_grouped[columna], marker="o", label=columna)
+        # Crear figura y dos ejes y
+        fig, ax1 = plt.subplots(figsize=(12, 6))
 
-        plt.xlabel("Ciclo")
-        plt.ylabel("Valor promedio")
+        # EJE PRINCIPAL: Dinero (valores grandes)
+        ax1.plot(df_grouped.index, df_grouped["dinero"], marker="o", color="blue", label="dinero")
+        ax1.set_xlabel("Ciclo")
+        ax1.set_ylabel("Dinero (€)", color="blue")
+        ax1.tick_params(axis='y', labelcolor="blue")
+
+        # EJE SECUNDARIO: Clientes, Ventas y Participación de mercado
+        ax2 = ax1.twinx()
+        ax2.plot(df_grouped.index, df_grouped["clientes"], marker="o", color="orange", label="clientes")
+        ax2.plot(df_grouped.index, df_grouped["ventas"], marker="o", color="green", label="ventas")
+        ax2.plot(df_grouped.index, df_grouped["participacion_mercado"], marker="o", color="red", label="participacion_mercado")
+        ax2.set_ylabel("Clientes / Ventas / Participación (%)", color="black")
+        ax2.tick_params(axis='y', labelcolor="black")
+
+        # Combinar leyendas de ambos ejes
+        lines1, labels1 = ax1.get_legend_handles_labels()
+        lines2, labels2 = ax2.get_legend_handles_labels()
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left")
+
+        # Título y formato
         plt.title("Evolución de las variables a lo largo de los ciclos")
-        plt.legend()
         plt.grid(True)
+        plt.tight_layout()
         plt.show()
 
     def grafico_distribucion(df_final):
@@ -457,14 +476,45 @@ if df is not None and df_final is not None:
         plt.show()
 
     def grafico_comparacion(df_final):
+        # Agrupamos por simulación y calculamos los promedios
         stats_grouped = df_final.groupby("simulacion")[["dinero", "clientes", "ventas", "participacion_mercado"]].mean()
 
-        stats_grouped.plot(kind="bar", figsize=(12, 6))
-        plt.ylabel("Valor promedio")
-        plt.title("Comparación entre simulaciones")
-        plt.grid(axis="y")
-        plt.xticks(rotation=45)
+        # Crear subgráficos 2x2
+        fig, axs = plt.subplots(2, 2, figsize=(14, 10), sharex=True)
+
+        # Gráfico de dinero
+        stats_grouped["dinero"].plot(kind="bar", ax=axs[0, 0], color="blue")
+        axs[0, 0].set_title("Dinero promedio por simulación")
+        axs[0, 0].set_ylabel("€")
+        axs[0, 0].grid(True)
+
+        # Gráfico de clientes
+        stats_grouped["clientes"].plot(kind="bar", ax=axs[0, 1], color="orange")
+        axs[0, 1].set_title("Clientes promedio por simulación")
+        axs[0, 1].set_ylabel("Clientes")
+        axs[0, 1].grid(True)
+
+        # Gráfico de ventas
+        stats_grouped["ventas"].plot(kind="bar", ax=axs[1, 0], color="green")
+        axs[1, 0].set_title("Ventas promedio por simulación")
+        axs[1, 0].set_ylabel("Coches vendidos")
+        axs[1, 0].grid(True)
+
+        # Gráfico de participación de mercado
+        stats_grouped["participacion_mercado"].plot(kind="bar", ax=axs[1, 1], color="red")
+        axs[1, 1].set_title("Participación de mercado promedio (%)")
+        axs[1, 1].set_ylabel("%")
+        axs[1, 1].grid(True)
+
+        # Ajustes finales
+        for ax in axs.flat:
+            ax.set_xlabel("Simulación")
+            ax.set_xticklabels(ax.get_xticklabels(), rotation=45)
+
+        plt.suptitle("Comparación entre simulaciones por variable")
+        plt.tight_layout()
         plt.show()
+
 
     def grafico_correlacion(df_final):
         plt.figure(figsize=(8, 6))
